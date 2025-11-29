@@ -1,0 +1,48 @@
+name: collect-ips
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'  # 每3小时运行一次
+  # 允许手动触发以便测试
+  workflow_dispatch:
+
+# 如果你想让 Actions 有权限把文件写回仓库（可选）
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: Run collect_ips.py
+        run: python collect_ips.py
+
+      - name: Upload ip.txt (保存运行输出作为 artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ip-txt
+          path: ip.txt
+
+      # 可选：如果你希望把生成的 ip.txt 提交回仓库
+      # 取消下面步骤的注释（保持前面的 permissions: contents: write）
+      #
+      - name: Commit ip.txt back to repository
+        run: |
+           git config user.name "github-actions[bot]"
+           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+           git add ip.txt
+           git commit -m "Update ip.txt from scheduled workflow" || echo "No changes to commit"
+           git push
